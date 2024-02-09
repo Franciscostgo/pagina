@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migración de Datos y Maestro de Direcciones</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+        }
+
+        header {
+            background-image: linear-gradient(90deg, rgba(201, 53, 110, 1) 0%, rgba(103, 69, 150, 1) 100%, rgba(0, 212, 255, 1) 100%);
+            color: white;
+            padding: 20px 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+        }
+
+        nav {
+            background: linear-gradient(90deg, rgba(201, 53, 110, 1) 0%, rgba(103, 69, 150, 1) 100%, rgba(0, 212, 255, 1) 100%);
+            padding: 10px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            cursor: pointer;
+        }
+
+        main {
+            padding: 20px;
+            text-align: center;
+        }
+
+        form {
+            width: 60%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        input[type="submit"],
+        button {
+            background-image: linear-gradient(90deg, rgba(201, 53, 110, 1) 0%, rgba(103, 69, 150, 1) 100%, rgba(0, 212, 255, 1) 100%);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover,
+        button:hover {
+            background-image: linear-gradient(90deg, rgba(201, 53, 110, 0.8) 0%, rgba(103, 69, 150, 0.8) 100%, rgba(0, 212, 255, 0.8) 100%);
+        }
+
+        footer {
+            background: linear-gradient(90deg, rgba(201, 53, 110, 1) 0%, rgba(103, 69, 150, 1) 100%, rgba(0, 212, 255, 1) 100%);
+            color: #333;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #444;
+            color: white;
+        }
+
+        #map {
+            height: 300px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        form#search-form {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        input#busqueda {
+            padding: 8px;
+        }
+
+        button#filtrar {
+            padding: 8px 15px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button#mostrar-mapa {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Nuevos estilos para el formulario de filtrado por calle */
+        form#filtro-calle-form {
+            display: none;
+        }
+
+        select#filtro-calle,
+        input#busqueda {
+            padding: 8px;
+        }
+
+        button#filtrar-calle {
+            padding: 8px 15px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Migración de Datos PostgreSQL a SQL Server y Maestro de Direcciones</h1>
+    </header>
+
+    <nav>
+        <a onclick="showForm('migracion-form')">Migrar Datos</a>
+        <a onclick="showForm('busqueda-form')">Buscar Datos</a>
+        <a onclick="showForm('filtro-calle-form')">Filtrar por Calle</a>
+        <a href="/filtrar-direcciones">Filtrar Direcciones</a> <!-- Cambiado de "Listar Direcciones" a "Filtrar Direcciones" -->
+
+        <!-- Botón para mostrar el minimapa -->
+        <button id="mostrar-mapa" onclick="showMap()">Mostrar Mapa</button>
+
+        <!-- Minimapa de Santiago -->
+        <div id="map"></div>
+    </nav>
+
+    <main>
+        <!-- Formulario de búsqueda con filtrador -->
+        <form id="search-form" action="/listar-direcciones" method="get">
+            <label for="busqueda">Buscar Direcciones:</label>
+            <input type="text" id="busqueda" name="busqueda" required>
+            <button id="filtrar" type="submit">Filtrar</button>
+        </form>
+
+        <!-- Nuevo formulario de filtrado por calle -->
+        <form id="filtro-calle-form" action="/listar-direcciones" method="get">
+            <label for="filtro-calle">Filtrar por Calle:</label>
+            <select id="filtro-calle" name="filtro-calle">
+                <!-- Opciones del menú desplegable con nombres de calles -->
+                <option value="calle1">Calle 1</option>
+                <option value="calle2">Calle 2</option>
+                <!-- Agrega más opciones según tus necesidades -->
+            </select>
+
+            <label for="busqueda">Buscar Direcciones:</label>
+            <input type="text" id="busqueda" name="busqueda" required>
+
+            <button id="filtrar-calle" type="submit">Filtrar por Calle</button>
+        </form>
+
+        <!-- Mostrar la lista de direcciones -->
+        <div id="direccion-lista">
+            <!-- Aquí mostrar la lista de direcciones obtenida desde tu backend -->
+        </div>
+
+        <!-- Formulario de migración de datos -->
+        <form id="migracion-form" action="migracion.php" method="post">
+            <label for="host_pg">Host PostgreSQL:</label>
+            <input type="text" name="host_pg" required>
+
+            <label for="user_pg">Usuario PostgreSQL:</label>
+            <input type="text" name="user_pg" required>
+
+            <label for="pass_pg">Contraseña PostgreSQL:</label>
+            <input type="password" name="pass_pg" required>
+
+            <label for="db_pg">Nombre de la Base de Datos PostgreSQL:</label>
+            <input type="text" name="db_pg" required>
+
+            <label for="host_sql">Host SQL Server:</label>
+            <input type="text" name="host_sql" required>
+
+            <label for="user_sql">Usuario SQL Server:</label>
+            <input type="text" name="user_sql" required>
+
+            <label for="pass_sql">Contraseña SQL Server:</label>
+            <input type="password" name="pass_sql" required>
+
+            <label for="db_sql">Nombre de la Base de Datos SQL Server:</label>
+            <input type="text" name="db_sql" required>
+
+            <input type="submit" value="Iniciar Migración">
+        </form>
+
+        <!-- Formulario de buscar datos migrados -->
+        <form id="busqueda-form" action="/buscar-datos-migrados" method="get">
+            <label for="busqueda">Buscar Datos Migrados:</label>
+            <input type="text" id="busqueda" name="busqueda" required>
+            <button id="buscar" type="submit">Buscar</button>
+        </form>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Maestro de Direcciones</p>
+    </footer>
+
+    <!-- Carga de la API de Google Maps -->
+    <script defer src="https://maps.googleapis.com/maps/api/js?key=TU_CLAVE_API&callback=initMap"></script>
+
+    <script>
+        // Función de inicialización del mapa
+        function initMap() {
+            var santiago = { lat: -33.4489, lng: -70.6693 };
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 12,
+                center: santiago
+            });
+            var marker = new google.maps.Marker({
+                position: santiago,
+                map: map
+            });
+        }
+
+        // Función para mostrar el formulario correspondiente
+        function showForm(formId) {
+            document.getElementById('migracion-form').style.display = 'none';
+            document.getElementById('busqueda-form').style.display = 'none';
+            document.getElementById('filtro-calle-form').style.display = 'none';
+            document.getElementById(formId).style.display = 'block';
+            document.getElementById('map').style.display = 'none';
+        }
+
+        // Función para mostrar el minimapa
+        function showMap() {
+            document.getElementById('migracion-form').style.display = 'none';
+            document.getElementById('busqueda-form').style.display = 'none';
+            document.getElementById('filtro-calle-form').style.display = 'none';
+            document.getElementById('map').style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
